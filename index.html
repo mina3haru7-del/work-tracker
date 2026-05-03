@@ -40,6 +40,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .entry-type{font-size:10px;color:#999;margin-bottom:2px}
 .entry-row{display:flex;align-items:center;justify-content:space-between}
 .del-btn{background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:4px;flex-shrink:0}
+.edit-btn{background:none;border:none;color:#aaa;font-size:15px;cursor:pointer;padding:4px;flex-shrink:0}
+.entry-actions{display:flex;gap:2px}
 .no-entry{color:#bbb;text-align:center;padding:16px;font-size:13px}
 .summary{margin:0 10px 90px}
 .summary-title{font-size:13px;font-weight:700;color:#555;padding:14px 6px 8px}
@@ -222,8 +224,8 @@ function selDay(dt){
   const ss=data.schedules.filter(s=>String(s.date).includes(dt));
   const ws=data.works.filter(w=>String(w.date).includes(dt));
   let h='';
-  ss.forEach(s=>h+=`<div class="entry s"><div class="entry-type">📅 スケジュール</div><div class="entry-row"><span>${s.name}｜${s.task}${s.product?'｜'+s.product:''}｜${s.hours}時間</span><button class="del-btn" onclick="deleteEntry('schedule',${s.row},'${dt}')">🗑️</button></div></div>`);
-  ws.forEach(w=>h+=`<div class="entry w"><div class="entry-type">✅ 作業記録</div><div class="entry-row"><span>${w.name}｜${w.task}${w.product?'｜'+w.product:''}｜${w.hours}時間</span><button class="del-btn" onclick="deleteEntry('work',${w.row},'${dt}')">🗑️</button></div></div>`);
+  ss.forEach(s=>h+=`<div class="entry s"><div class="entry-type">📅 スケジュール</div><div class="entry-row"><span>${s.name}｜${s.task}${s.product?'｜'+s.product:''}</span><div class="entry-actions"><button class="edit-btn" onclick="editEntry('schedule',${JSON.stringify(s).replace(/"/g,'&quot;')},'${dt}')">✏️</button><button class="del-btn" onclick="deleteEntry('schedule',${s.row},'${dt}')">🗑️</button></div></div></div>`);
+  ws.forEach(w=>h+=`<div class="entry w"><div class="entry-type">✅ 作業記録</div><div class="entry-row"><span>${w.name}｜${w.task}${w.product?'｜'+w.product:''}｜${w.hours}時間</span><div class="entry-actions"><button class="edit-btn" onclick="editEntry('work',${JSON.stringify(w).replace(/"/g,'&quot;')},'${dt}')">✏️</button><button class="del-btn" onclick="deleteEntry('work',${w.row},'${dt}')">🗑️</button></div></div></div>`);
   if(!h) h='<div class="no-entry">この日の記録はありません</div>';
   document.getElementById('dcontent').innerHTML=h;
   document.getElementById('detail').classList.add('show');
@@ -279,7 +281,11 @@ function openModal(t){
   document.getElementById('overlay').classList.add('show');
 }
 
-function closeModal(){document.getElementById('overlay').classList.remove('show');}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+  editingRow=null;editingSheet=null;editingDt=null;
+  document.getElementById('sbtn').textContent='登録する';
+}
 
 function selName(n,el){
   document.querySelectorAll('.sel-btn').forEach(b=>{if(b.textContent==='はるな'||b.textContent==='ゆかり')b.classList.remove('on');});
@@ -303,6 +309,13 @@ function submit(){
   fproduct=document.getElementById('fproduct').value.trim();
   if(!dt||!fname||!ftask){toast('すべて選択してください');return;}
   if(mode!=='schedule'&&!fhours){toast('時間を選択してください');return;}
+  // 修正モードの場合は旧データを削除
+  if(editingRow){
+    if(editingSheet==='schedule') data.schedules=data.schedules.filter(s=>s.row!==editingRow);
+    else data.works=data.works.filter(w=>w.row!==editingRow);
+    fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:editingSheet,row:editingRow}),headers:{'Content-Type':'text/plain'}});
+    editingRow=null;editingSheet=null;
+  }
   // 繰り返し登録
   if(mode==='schedule' && document.getElementById('repeat-check').checked){
     const endDt=document.getElementById('fdate-end').value;
@@ -327,6 +340,36 @@ function submit(){
   fetch(GAS,{method:'POST',mode:'no-cors',body:payload,headers:{'Content-Type':'text/plain'}})
     .then(()=>{closeModal();toast('登録しました！');setTimeout(()=>loadData(),2000);})
     .catch(()=>{closeModal();toast('送信エラー');});
+}
+
+let editingRow=null, editingSheet=null, editingDt=null;
+
+function editEntry(sheet, entry, dt){
+  editingRow=entry.row; editingSheet=sheet; editingDt=dt;
+  openModal(sheet);
+  // 既存データを入力済みにする
+  document.getElementById('fdate').value=entry.date;
+  // 名前
+  document.querySelectorAll('.sel-btn').forEach(b=>{
+    if(b.textContent===entry.name){b.classList.add('on');fname=entry.name;}
+  });
+  // 作業名
+  document.querySelectorAll('.sel-btn').forEach(b=>{
+    if(b.textContent===entry.task){
+      b.classList.add('on');ftask=entry.task;
+      if(entry.task==='動画投稿'){fhours=1;document.getElementById('hours-wrap').style.display='none';}
+    }
+  });
+  // 商品名
+  if(entry.product){document.getElementById('fproduct').value=entry.product;fproduct=entry.product;}
+  // 時間
+  if(entry.hours){
+    fhours=entry.hours;
+    document.querySelectorAll('.h-btn').forEach(b=>{
+      if(parseFloat(b.textContent)===entry.hours)b.classList.add('on');
+    });
+  }
+  document.getElementById('sbtn').textContent='更新する';
 }
 
 function toggleRepeat(on){
