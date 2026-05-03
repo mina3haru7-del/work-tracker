@@ -276,9 +276,18 @@ function submit(){
 
 function deleteEntry(sheet, row, dt){
   if(!confirm('削除しますか？')) return;
-  fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:sheet,row:row}),headers:{'Content-Type':'text/plain'}})
-    .then(()=>{toast('削除しました');setTimeout(()=>{loadData();selDay(dt);},2000);})
-    .catch(()=>toast('削除エラー'));
+  // ローカルデータを即時更新
+  if(sheet==='schedule'){
+    data.schedules=data.schedules.filter(s=>s.row!==row);
+  } else {
+    data.works=data.works.filter(w=>w.row!==row);
+  }
+  render();
+  selDay(dt);
+  renderSum();
+  toast('削除しました');
+  // GASに削除を送信
+  fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:sheet,row:row}),headers:{'Content-Type':'text/plain'}});
 }
 
 function toast(m){
