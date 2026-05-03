@@ -30,6 +30,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dot{width:5px;height:5px;border-radius:50%}
 .dot.s{background:#1976D2}
 .dot.w{background:#4CAF50}
+.sched-chip{background:#e3f2fd;color:#1976D2;font-size:9px;border-radius:3px;padding:1px 3px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;font-weight:600}
 .detail{display:none;margin:0 10px 10px}
 .detail.show{display:block}
 .detail-title{font-size:15px;font-weight:700;color:#333;padding:14px 16px 8px}
@@ -180,11 +181,13 @@ function render(){
   for(let d=1;d<=ld;d++){
     const dt=cy+'-'+p2(cm+1)+'-'+p2(d);
     const isTod=dt===today,isSel=dt===selDate;
-    const hs=data.schedules.some(s=>String(s.date).includes(dt));
+    const scheds=data.schedules.filter(s=>String(s.date).includes(dt));
     const hw=data.works.some(w=>String(w.date).includes(dt));
+    const schedChips=scheds.map(s=>`<span class="sched-chip">${s.name}｜${s.task}</span>`).join('');
     html+=`<div class="day${isTod?' today':''}${isSel?' selected':''}" onclick="selDay('${dt}')">
       <div class="dn">${d}</div>
-      <div class="dots">${hs?'<div class="dot s"></div>':''}${hw?'<div class="dot w"></div>':''}</div>
+      ${schedChips}
+      <div class="dots">${hw?'<div class="dot w"></div>':''}</div>
     </div>`;
   }
   document.getElementById('days').innerHTML=html;
