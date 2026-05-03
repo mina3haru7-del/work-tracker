@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>作業トラッカー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;min-height:100vh}
+.header{background:#4CAF50;color:#fff;padding:16px;text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.header h1{font-size:17px;font-weight:700;margin-bottom:10px}
+.month-nav{display:flex;align-items:center;justify-content:center;gap:24px}
+.month-nav button{background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.month-nav span{font-size:16px;font-weight:700;min-width:120px;text-align:center}
+.card{background:#fff;margin:10px;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,0.08);overflow:hidden}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:#f9f9f9;border-bottom:1px solid #eee}
+.wd{text-align:center;padding:8px 0;font-size:11px;font-weight:700;color:#999}
+.wd:first-child{color:#e53935}
+.wd:last-child{color:#1976D2}
+.days{display:grid;grid-template-columns:repeat(7,1fr)}
+.day{min-height:56px;padding:4px;border-top:1px solid #f5f5f5;cursor:pointer;position:relative;transition:background .15s}
+.day:active{background:#f0f0f0}
+.day.empty{cursor:default}
+.day.today{background:#e8f5e9}
+.day.selected{background:#c8e6c9}
+.dn{font-size:13px;font-weight:500;line-height:1.4}
+.day:nth-child(7n+1) .dn{color:#e53935}
+.day:nth-child(7n) .dn{color:#1976D2}
+.dots{display:flex;gap:2px;flex-wrap:wrap;margin-top:2px}
+.dot{width:5px;height:5px;border-radius:50%}
+.dot.s{background:#1976D2}
+.dot.w{background:#4CAF50}
+.detail{display:none;margin:0 10px 10px}
+.detail.show{display:block}
+.detail-title{font-size:15px;font-weight:700;color:#333;padding:14px 16px 8px}
+.entry{padding:10px 16px;border-left:3px solid;margin:0 10px 8px;border-radius:0 8px 8px 0;font-size:13px}
+.entry.s{background:#e3f2fd;border-color:#1976D2}
+.entry.w{background:#e8f5e9;border-color:#4CAF50}
+.entry-type{font-size:10px;color:#999;margin-bottom:2px}
+.no-entry{color:#bbb;text-align:center;padding:16px;font-size:13px}
+.summary{margin:0 10px 90px}
+.summary-title{font-size:13px;font-weight:700;color:#555;padding:14px 6px 8px}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.s-card{background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.07)}
+.s-name{font-size:12px;color:#999;margin-bottom:4px}
+.s-hours{font-size:28px;font-weight:700;color:#4CAF50}
+.s-unit{font-size:11px;color:#bbb;margin-top:2px}
+.fab-wrap{position:fixed;bottom:24px;right:20px;z-index:100}
+.fab{width:56px;height:56px;border-radius:50%;background:#4CAF50;color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 4px 16px rgba(76,175,80,0.5);display:flex;align-items:center;justify-content:center;transition:transform .25s,background .25s}
+.fab.open{transform:rotate(45deg);background:#e53935;box-shadow:0 4px 16px rgba(229,57,53,0.4)}
+.fab-opts{position:absolute;bottom:68px;right:0;display:flex;flex-direction:column;gap:12px;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;transform:translateY(10px)}
+.fab-opts.show{opacity:1;pointer-events:all;transform:translateY(0)}
+.fab-opt{display:flex;align-items:center;gap:8px}
+.opt-label{background:#fff;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,0.15);white-space:nowrap;color:#333}
+.opt-btn{width:46px;height:46px;border-radius:50%;border:none;color:#fff;font-size:18px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center}
+.opt-btn.s{background:#1976D2}
+.opt-btn.w{background:#4CAF50}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:none;align-items:flex-end;backdrop-filter:blur(2px)}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 32px;width:100%;max-height:88vh;overflow-y:auto}
+.modal-title{font-size:17px;font-weight:700;text-align:center;margin-bottom:20px}
+.modal-title.s{color:#1976D2}
+.modal-title.w{color:#4CAF50}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:12px;color:#999;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+.sel-btn{padding:10px 20px;border:2px solid #e8e8e8;border-radius:24px;background:#fff;font-size:14px;cursor:pointer;transition:all .15s;font-weight:500}
+.sel-btn.on{border-color:#4CAF50;background:#4CAF50;color:#fff}
+.sel-btn.on.s-mode{border-color:#1976D2;background:#1976D2}
+.h-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.h-btn{padding:10px 4px;border:2px solid #e8e8e8;border-radius:10px;background:#fff;font-size:13px;cursor:pointer;text-align:center;transition:all .15s;font-weight:500}
+.h-btn.on{border-color:#4CAF50;background:#4CAF50;color:#fff}
+.h-btn.on.s-mode{border-color:#1976D2;background:#1976D2}
+input[type=date]{width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:12px;font-size:15px;outline:none}
+input[type=date]:focus{border-color:#4CAF50}
+.sub-btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:16px;font-weight:700;color:#fff;cursor:pointer;margin-top:12px}
+.sub-btn.s{background:#1976D2}
+.sub-btn.w{background:#4CAF50}
+.can-btn{width:100%;padding:12px;border:none;background:none;font-size:15px;color:#aaa;cursor:pointer;margin-top:4px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:12px 24px;border-radius:24px;font-size:14px;z-index:400;opacity:0;transition:opacity .3s;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 作業トラッカー</h1>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span id="mlabel"></span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="weekdays">
+    <div class="wd">日</div><div class="wd">月</div><div class="wd">火</div>
+    <div class="wd">水</div><div class="wd">木</div><div class="wd">金</div><div class="wd">土</div>
+  </div>
+  <div class="days" id="days"></div>
+</div>
+
+<div class="detail card" id="detail">
+  <div class="detail-title" id="dtitle"></div>
+  <div id="dcontent"></div>
+</div>
+
+<div class="summary">
+  <div class="summary-title">📊 今月の作業時間</div>
+  <div class="summary-grid">
+    <div class="s-card"><div class="s-name">はるな</div><div class="s-hours" id="h-h">0</div><div class="s-unit">時間</div></div>
+    <div class="s-card"><div class="s-name">ゆかり</div><div class="s-hours" id="y-h">0</div><div class="s-unit">時間</div></div>
+  </div>
+</div>
+
+<div class="fab-wrap">
+  <div class="fab-opts" id="fopts">
+    <div class="fab-opt">
+      <span class="opt-label">スケジュール登録</span>
+      <button class="opt-btn s" onclick="openModal('schedule')">📅</button>
+    </div>
+    <div class="fab-opt">
+      <span class="opt-label">作業登録</span>
+      <button class="opt-btn w" onclick="openModal('work')">✅</button>
+    </div>
+  </div>
+  <button class="fab" id="fab" onclick="toggleFab()">+</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-title" id="mtitle"></div>
+    <div class="fg"><label>日付</label><input type="date" id="fdate"></div>
+    <div class="fg"><label>名前</label>
+      <div class="btn-row">
+        <button class="sel-btn" onclick="selName('はるな',this)">はるな</button>
+        <button class="sel-btn" onclick="selName('ゆかり',this)">ゆかり</button>
+      </div>
+    </div>
+    <div class="fg"><label>作業名</label>
+      <div class="btn-row">
+        <button class="sel-btn" onclick="selTask('動画投稿',this)">動画投稿</button>
+        <button class="sel-btn" onclick="selTask('ライブ',this)">ライブ</button>
+      </div>
+    </div>
+    <div class="fg"><label>時間</label><div class="h-grid" id="hgrid"></div></div>
+    <button class="sub-btn" id="sbtn" onclick="submit()">登録する</button>
+    <button class="can-btn" onclick="closeModal()">キャンセル</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS='https://script.google.com/macros/s/AKfycbyG60R2MeWAchHj_EHmgtc1Wr9q_EkmW-_LYjqp2DL69xOZaQ7vrRLl66q9_vv6hQ/exec';
+let cy,cm,selDate,mode,fname='',ftask='',fhours=0,data={schedules:[],works:[]};
+
+function ds(d){return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function p2(n){return String(n).padStart(2,'0')}
+
+function init(){
+  const n=new Date();cy=n.getFullYear();cm=n.getMonth();selDate=ds(n);
+  loadData();
+}
+
+function loadData(){
+  fetch(GAS).then(r=>r.json()).then(d=>{data=d;render();renderSum();}).catch(()=>render());
+}
+
+function render(){
+  document.getElementById('mlabel').textContent=cy+'年'+(cm+1)+'月';
+  const fd=new Date(cy,cm,1).getDay();
+  const ld=new Date(cy,cm+1,0).getDate();
+  const today=ds(new Date());
+  let html='';
+  for(let i=0;i<fd;i++) html+='<div class="day empty"></div>';
+  for(let d=1;d<=ld;d++){
+    const dt=cy+'-'+p2(cm+1)+'-'+p2(d);
+    const isTod=dt===today,isSel=dt===selDate;
+    const hs=data.schedules.some(s=>String(s.date).includes(dt));
+    const hw=data.works.some(w=>String(w.date).includes(dt));
+    html+=`<div class="day${isTod?' today':''}${isSel?' selected':''}" onclick="selDay('${dt}')">
+      <div class="dn">${d}</div>
+      <div class="dots">${hs?'<div class="dot s"></div>':''}${hw?'<div class="dot w"></div>':''}</div>
+    </div>`;
+  }
+  document.getElementById('days').innerHTML=html;
+}
+
+function selDay(dt){
+  selDate=dt;render();
+  const p=dt.split('-');
+  document.getElementById('dtitle').textContent=p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日';
+  const ss=data.schedules.filter(s=>String(s.date).includes(dt));
+  const ws=data.works.filter(w=>String(w.date).includes(dt));
+  let h='';
+  ss.forEach(s=>h+=`<div class="entry s"><div class="entry-type">📅 スケジュール</div>${s.name}｜${s.task}｜${s.hours}時間</div>`);
+  ws.forEach(w=>h+=`<div class="entry w"><div class="entry-type">✅ 作業記録</div>${w.name}｜${w.task}｜${w.hours}時間</div>`);
+  if(!h) h='<div class="no-entry">この日の記録はありません</div>';
+  document.getElementById('dcontent').innerHTML=h;
+  document.getElementById('detail').classList.add('show');
+}
+
+function renderSum(){
+  const ym=new Date().getFullYear()+'-'+p2(new Date().getMonth()+1);
+  let h=0,y=0;
+  data.works.forEach(w=>{if(String(w.date).includes(ym)){if(w.name==='はるな')h+=Number(w.hours);else if(w.name==='ゆかり')y+=Number(w.hours);}});
+  document.getElementById('h-h').textContent=h;
+  document.getElementById('y-h').textContent=y;
+}
+
+function changeMonth(d){
+  cm+=d;if(cm>11){cm=0;cy++;}if(cm<0){cm=11;cy--;}render();
+}
+
+function toggleFab(){
+  document.getElementById('fab').classList.toggle('open');
+  document.getElementById('fopts').classList.toggle('show');
+}
+
+function openModal(t){
+  mode=t;fname='';ftask='';fhours=0;
+  document.getElementById('fab').classList.remove('open');
+  document.getElementById('fopts').classList.remove('show');
+  const title=t==='schedule'?'📅 スケジュール登録':'✅ 作業登録';
+  document.getElementById('mtitle').textContent=title;
+  document.getElementById('mtitle').className='modal-title '+(t==='schedule'?'s':'w');
+  document.getElementById('sbtn').className='sub-btn '+(t==='schedule'?'s':'w');
+  document.getElementById('fdate').value=selDate;
+  document.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('on'));
+  const g=document.getElementById('hgrid');g.innerHTML='';
+  for(let h=0.5;h<=8;h+=0.5){
+    const b=document.createElement('button');
+    b.className='h-btn'+(t==='schedule'?' s-mode':'');
+    b.textContent=h+'h';
+    const hv=h;
+    b.onclick=function(){document.querySelectorAll('.h-btn').forEach(x=>x.classList.remove('on'));this.classList.add('on');fhours=hv;};
+    g.appendChild(b);
+  }
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+
+function selName(n,el){
+  document.querySelectorAll('.sel-btn').forEach(b=>{if(b.textContent==='はるな'||b.textContent==='ゆかり')b.classList.remove('on');});
+  el.classList.add('on');if(mode==='schedule')el.classList.add('s-mode');fname=n;
+}
+
+function selTask(t,el){
+  document.querySelectorAll('.sel-btn').forEach(b=>{if(b.textContent==='動画投稿'||b.textContent==='ライブ')b.classList.remove('on');});
+  el.classList.add('on');if(mode==='schedule')el.classList.add('s-mode');ftask=t;
+}
+
+function submit(){
+  const dt=document.getElementById('fdate').value;
+  if(!dt||!fname||!ftask||!fhours){toast('すべて選択してください');return;}
+  fetch(GAS,{method:'POST',body:JSON.stringify({type:mode,date:dt,name:fname,task:ftask,hours:fhours})})
+    .then(()=>{closeModal();toast('登録しました！');loadData();})
+    .catch(()=>{closeModal();toast('登録しました！');loadData();});
+}
+
+function toast(m){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+init();
+</script>
+</body>
+</html>
