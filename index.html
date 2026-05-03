@@ -266,9 +266,10 @@ function submit(){
   const dt=document.getElementById('fdate').value;
   fproduct=document.getElementById('fproduct').value.trim();
   if(!dt||!fname||!ftask||!fhours){toast('すべて選択してください');return;}
-  fetch(GAS,{method:'POST',body:JSON.stringify({type:mode,date:dt,name:fname,task:ftask,product:fproduct,hours:fhours})})
-    .then(()=>{closeModal();toast('登録しました！');loadData();})
-    .catch(()=>{closeModal();toast('登録しました！');loadData();});
+  var payload = JSON.stringify({type:mode,date:dt,name:fname,task:ftask,product:fproduct,hours:fhours});
+  fetch(GAS,{method:'POST',mode:'no-cors',body:payload,headers:{'Content-Type':'text/plain'}})
+    .then(()=>{closeModal();toast('登録しました！');setTimeout(()=>loadData(),2000);})
+    .catch(()=>{closeModal();toast('送信エラー');});
 }
 
 function toast(m){
