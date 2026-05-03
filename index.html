@@ -205,7 +205,7 @@ function render(){
     const isTod=dt===today,isSel=dt===selDate;
     const scheds=data.schedules.filter(s=>String(s.date).includes(dt));
     const hw=data.works.some(w=>String(w.date).includes(dt));
-    const schedChips=scheds.map(s=>`<span class="sched-chip">${s.name}｜${s.task}</span>`).join('');
+    const schedChips=scheds.map(s=>`<span class="sched-chip">${s.name}｜${s.task}${s.product?'｜'+s.product:''}</span>`).join('');
     html+=`<div class="day${isTod?' today':''}${isSel?' selected':''}" onclick="selDay('${dt}')">
       <div class="dn">${d}</div>
       ${schedChips}
@@ -259,7 +259,7 @@ function openModal(t){
   document.getElementById('fdate').value=selDate;
   document.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('on'));
   // スケジュールは商品名・時間不要、繰り返し表示
-  document.getElementById('product-wrap').style.display=t==='schedule'?'none':'block';
+  document.getElementById('product-wrap').style.display='block';
   document.getElementById('hours-wrap').style.display=t==='schedule'?'none':'block';
   document.getElementById('schedule-repeat-toggle').style.display=t==='schedule'?'block':'none';
   document.getElementById('repeat-wrap').style.display='none';
@@ -316,8 +316,8 @@ function submit(){
     }
     let sent=0;
     dates.forEach(function(date){
-      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'schedule',date:date,name:fname,task:ftask,product:'',hours:0}),headers:{'Content-Type':'text/plain'}});
-      data.schedules.push({row:0,date:date,name:fname,task:ftask,product:'',hours:0});
+      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'schedule',date:date,name:fname,task:ftask,product:fproduct,hours:0}),headers:{'Content-Type':'text/plain'}});
+      data.schedules.push({row:0,date:date,name:fname,task:ftask,product:fproduct,hours:0});
     });
     closeModal();toast(dates.length+'件登録しました！');render();renderSum();
     return;
