@@ -372,13 +372,13 @@ function submit(){
       let count=0;
       for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
         const dateStr=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
-        data.schedules.push({row:Date.now()+Math.random(),date:dateStr,name:fname,task:ftask,product:'',hours:0});
+        data.schedules.push({row:Date.now()+Math.random(),date:dateStr,name:fname,task:ftask,product:fproduct,hours:0});
         count++;
       }
       saveSchedulesToLocal();
       closeModal();toast(count+'日分登録しました！');render();
     } else {
-      data.schedules.push({row:Date.now(),date:dt,name:fname,task:ftask,product:'',hours:0});
+      data.schedules.push({row:Date.now(),date:dt,name:fname,task:ftask,product:fproduct,hours:0});
       saveSchedulesToLocal();
       closeModal();toast('登録しました！');render();selDay(dt);
     }
