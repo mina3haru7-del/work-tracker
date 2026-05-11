@@ -226,7 +226,7 @@ function render(){
     const isTod=dt===today,isSel=dt===selDate;
     const scheds=data.schedules.filter(s=>String(s.date).includes(dt));
     const hw=data.works.some(w=>String(w.date).includes(dt));
-    const schedChips=scheds.map(s=>`<span class="sched-chip">${s.name}｜${s.task}${s.product?'｜'+s.product:''}</span>`).join('');
+    const schedChips=scheds.map(s=>`<span class="sched-chip">${s.name}｜${s.product||s.task}</span>`).join('');
     html+=`<div class="day${isTod?' today':''}${isSel?' selected':''}" onclick="selDay('${dt}')">
       <div class="dn">${d}</div>
       ${schedChips}
@@ -243,7 +243,7 @@ function selDay(dt){
   const ss=data.schedules.filter(s=>String(s.date).includes(dt));
   const ws=data.works.filter(w=>String(w.date).includes(dt));
   let h='';
-  ss.forEach(s=>h+=`<div class="entry s"><div class="entry-type">📅 スケジュール</div><div class="entry-row"><span>${s.name}｜${s.task}${s.product?'｜'+s.product:''}</span><div class="entry-actions"><button class="edit-btn" onclick="editEntry('schedule',${JSON.stringify(s).replace(/"/g,'&quot;')},'${dt}')">✏️</button><button class="del-btn" onclick="deleteEntry('schedule',${s.row},'${dt}')">🗑️</button></div></div></div>`);
+  ss.forEach(s=>h+=`<div class="entry s"><div class="entry-type">📅 スケジュール</div><div class="entry-row"><span>${s.name}｜${s.product||s.task}</span><div class="entry-actions"><button class="edit-btn" onclick="editEntry('schedule',${JSON.stringify(s).replace(/"/g,'&quot;')},'${dt}')">✏️</button><button class="del-btn" onclick="deleteEntry('schedule',${s.row},'${dt}')">🗑️</button></div></div></div>`);
   ws.forEach(w=>h+=`<div class="entry w"><div class="entry-type">✅ 作業記録</div><div class="entry-row"><span>${w.name}｜${w.task}${w.product?'｜'+w.product:''}｜${w.hours}時間</span><div class="entry-actions"><button class="edit-btn" onclick="editEntry('work',${JSON.stringify(w).replace(/"/g,'&quot;')},'${dt}')">✏️</button><button class="del-btn" onclick="deleteEntry('work',${w.row},'${dt}')">🗑️</button></div></div></div>`);
   if(!h) h='<div class="no-entry">この日の記録はありません</div>';
   document.getElementById('dcontent').innerHTML=h;
