@@ -341,7 +341,7 @@ function selTask(t,el){
     document.getElementById('hours-wrap').style.display='none';
   } else {
     fhours=0;
-    document.getElementById('hours-wrap').style.display='block';
+    if(mode!=='schedule') document.getElementById('hours-wrap').style.display='block';
   }
 }
 
