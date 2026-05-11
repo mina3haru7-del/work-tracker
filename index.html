@@ -146,7 +146,12 @@ input[type=date]:focus{border-color:#4CAF50}
       <div class="btn-row">
         <button class="sel-btn" onclick="selTask('動画投稿',this)">動画投稿</button>
         <button class="sel-btn" onclick="selTask('ライブ',this)">ライブ</button>
+        <button class="sel-btn" id="private-btn" onclick="selTask('プライベート',this)" style="display:none">プライベート</button>
       </div>
+    </div>
+    <div class="fg" id="schedule-end-wrap" style="display:none">
+      <label style="font-size:12px;color:#999;font-weight:600">終了日（複数日まとめて登録）</label>
+      <input type="date" id="fdate-end-single" style="width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:12px;font-size:15px;outline:none;margin-top:6px">
     </div>
     <div class="fg" id="schedule-repeat-toggle" style="display:none">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -266,9 +271,12 @@ function openModal(t){
   document.getElementById('fdate').value=selDate;
   document.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('on'));
   // スケジュールは商品名・時間不要、繰り返し表示
-  document.getElementById('product-wrap').style.display='block';
+  document.getElementById('product-wrap').style.display=t==='schedule'?'none':'block';
   document.getElementById('hours-wrap').style.display=t==='schedule'?'none':'block';
   document.getElementById('schedule-repeat-toggle').style.display=t==='schedule'?'block':'none';
+  document.getElementById('schedule-end-wrap').style.display=t==='schedule'?'block':'none';
+  document.getElementById('fdate-end-single').value='';
+  document.getElementById('private-btn').style.display=t==='schedule'?'inline-block':'none';
   document.getElementById('repeat-wrap').style.display='none';
   document.getElementById('repeat-check').checked=false;
   selectedDows=[];
@@ -344,11 +352,25 @@ function submit(){
     return;
   }
 
-  // スケジュール登録（ローカルのみ）
+  // スケジュール登録（ローカルのみ・日またぎ対応）
   if(mode==='schedule'){
-    data.schedules.push({row:Date.now(),date:dt,name:fname,task:ftask,product:fproduct,hours:0});
-    saveSchedulesToLocal();
-    closeModal();toast('登録しました！');render();selDay(dt);
+    const endDtSingle=document.getElementById('fdate-end-single').value;
+    if(endDtSingle && endDtSingle>dt){
+      // 日をまたいで登録
+      const s=new Date(dt),e=new Date(endDtSingle);
+      let count=0;
+      for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
+        const dateStr=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+        data.schedules.push({row:Date.now()+Math.random(),date:dateStr,name:fname,task:ftask,product:'',hours:0});
+        count++;
+      }
+      saveSchedulesToLocal();
+      closeModal();toast(count+'日分登録しました！');render();
+    } else {
+      data.schedules.push({row:Date.now(),date:dt,name:fname,task:ftask,product:'',hours:0});
+      saveSchedulesToLocal();
+      closeModal();toast('登録しました！');render();selDay(dt);
+    }
     return;
   }
 
