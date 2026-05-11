@@ -212,16 +212,20 @@ function saveSchedulesToLocal(){localStorage.setItem('schedules',JSON.stringify(
 function loadSchedulesFromLocal(){try{return JSON.parse(localStorage.getItem('schedules'))||[];}catch(e){return[];}}
 
 function loadData(){
+  // ローカルキャッシュ（timeStr保持用）を先に表示
   const localSched=loadSchedulesFromLocal();
   data.schedules=localSched;
   render();
   fetch(GAS).then(r=>r.json()).then(d=>{
     data.works=d.works||[];
-    // 初回：GASにスケジュールがあってローカルが空なら自動移行
-    if(localSched.length===0 && d.schedules && d.schedules.length>0){
-      data.schedules=d.schedules;
-      saveSchedulesToLocal();
-    }
+    // GASからスケジュールを取得してtimeStrをマージ
+    const gasScheds=d.schedules||[];
+    gasScheds.forEach(gs=>{
+      const ls=localSched.find(s=>String(s.row)===String(gs.row));
+      if(ls&&ls.timeStr) gs.timeStr=ls.timeStr;
+    });
+    data.schedules=gasScheds;
+    saveSchedulesToLocal();
     render();renderSum();
   }).catch(()=>render());
 }
@@ -357,14 +361,18 @@ function submit(){
       saveSchedulesToLocal();
     } else {
       data.works=data.works.filter(w=>w.row!==editingRow);
-      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:editingSheet,row:editingRow}),headers:{'Content-Type':'text/plain'}});
     }
+    fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:editingSheet,row:editingRow}),headers:{'Content-Type':'text/plain'}});
     editingRow=null;editingSheet=null;
   }
-  // 繰り返しスケジュール登録（ローカルのみ）
+  // 繰り返しスケジュール登録
   if(mode==='schedule' && document.getElementById('repeat-check').checked){
     const endDt=document.getElementById('fdate-end').value;
     if(!endDt||selectedDows.length===0){toast('曜日と終了日を選択してください');return;}
+    const allDay=document.getElementById('allday-check').checked;
+    const timeFrom=allDay?'終日':document.getElementById('ftime-from').value;
+    const timeTo=allDay?'':document.getElementById('ftime-to').value;
+    const timeStr=allDay?'終日':(timeFrom&&timeTo?timeFrom+'〜'+timeTo:'');
     const start=new Date(dt),end=new Date(endDt);
     const dates=[];
     for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
@@ -373,7 +381,9 @@ function submit(){
       }
     }
     dates.forEach(function(date){
-      data.schedules.push({row:Date.now()+Math.random(),date:date,name:fname,task:ftask,product:fproduct,hours:0});
+      const rowId=Date.now()+Math.random();
+      data.schedules.push({row:rowId,date:date,name:fname,task:ftask,product:fproduct,timeStr:timeStr,hours:0});
+      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'schedule',row:rowId,date:date,name:fname,task:ftask,product:fproduct,hours:0}),headers:{'Content-Type':'text/plain'}});
     });
     saveSchedulesToLocal();
     closeModal();toast(dates.length+'件登録しました！');render();renderSum();
@@ -398,8 +408,10 @@ function submit(){
       saveSchedulesToLocal();
       closeModal();toast(count+'日分登録しました！');render();
     } else {
-      data.schedules.push({row:Date.now(),date:dt,name:fname,task:ftask,product:fproduct,timeStr:timeStr,hours:0});
+      const rowId=Date.now();
+      data.schedules.push({row:rowId,date:dt,name:fname,task:ftask,product:fproduct,timeStr:timeStr,hours:0});
       saveSchedulesToLocal();
+      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'schedule',row:rowId,date:dt,name:fname,task:ftask,product:fproduct,hours:0}),headers:{'Content-Type':'text/plain'}});
       closeModal();toast('登録しました！');render();selDay(dt);
     }
     return;
@@ -463,8 +475,8 @@ function deleteEntry(sheet, row, dt){
     saveSchedulesToLocal();
   } else {
     data.works=data.works.filter(w=>w.row!==row);
-    fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:sheet,row:row}),headers:{'Content-Type':'text/plain'}});
   }
+  fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:sheet,row:row}),headers:{'Content-Type':'text/plain'}});
   render();selDay(dt);renderSum();
   toast('削除しました');
 }
