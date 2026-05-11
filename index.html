@@ -175,7 +175,7 @@ input[type=date]:focus{border-color:#4CAF50}
         <input type="date" id="fdate-end" style="width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:12px;font-size:15px;outline:none;margin-top:6px">
       </div>
     </div>
-    <div class="fg" id="product-wrap"><label>商品名</label><input type="text" id="fproduct" placeholder="商品名を入力" style="width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:12px;font-size:15px;outline:none"></div>
+    <div class="fg" id="product-wrap"><label id="product-label">商品名</label><input type="text" id="fproduct" placeholder="商品名を入力" style="width:100%;padding:12px;border:2px solid #e8e8e8;border-radius:12px;font-size:15px;outline:none"></div>
     <div class="fg" id="hours-wrap"><label>時間</label><div class="h-grid" id="hgrid"></div></div>
     <button class="sub-btn" id="sbtn" onclick="submit()">登録する</button>
     <button class="can-btn" onclick="closeModal()">キャンセル</button>
@@ -280,7 +280,9 @@ function openModal(t){
   document.getElementById('fdate').value=selDate;
   document.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('on'));
   // スケジュールは商品名・時間不要、繰り返し表示
-  document.getElementById('product-wrap').style.display=t==='schedule'?'none':'block';
+  document.getElementById('product-wrap').style.display='block';
+  document.getElementById('product-label').textContent=t==='schedule'?'予定名':'商品名';
+  document.getElementById('fproduct').placeholder=t==='schedule'?'予定名を入力（任意）':'商品名を入力';
   document.getElementById('hours-wrap').style.display=t==='schedule'?'none':'block';
   document.getElementById('schedule-repeat-toggle').style.display=t==='schedule'?'block':'none';
   document.getElementById('schedule-end-wrap').style.display=t==='schedule'?'block':'none';
