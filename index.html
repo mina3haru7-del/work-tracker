@@ -200,9 +200,18 @@ function saveSchedulesToLocal(){localStorage.setItem('schedules',JSON.stringify(
 function loadSchedulesFromLocal(){try{return JSON.parse(localStorage.getItem('schedules'))||[];}catch(e){return[];}}
 
 function loadData(){
-  data.schedules=loadSchedulesFromLocal();
+  const localSched=loadSchedulesFromLocal();
+  data.schedules=localSched;
   render();
-  fetch(GAS).then(r=>r.json()).then(d=>{data.works=d.works||[];render();renderSum();}).catch(()=>render());
+  fetch(GAS).then(r=>r.json()).then(d=>{
+    data.works=d.works||[];
+    // 初回：GASにスケジュールがあってローカルが空なら自動移行
+    if(localSched.length===0 && d.schedules && d.schedules.length>0){
+      data.schedules=d.schedules;
+      saveSchedulesToLocal();
+    }
+    render();renderSum();
+  }).catch(()=>render());
 }
 
 function render(){
