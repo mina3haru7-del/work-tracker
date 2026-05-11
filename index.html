@@ -191,8 +191,13 @@ function init(){
   loadData();
 }
 
+function saveSchedulesToLocal(){localStorage.setItem('schedules',JSON.stringify(data.schedules));}
+function loadSchedulesFromLocal(){try{return JSON.parse(localStorage.getItem('schedules'))||[];}catch(e){return[];}}
+
 function loadData(){
-  fetch(GAS).then(r=>r.json()).then(d=>{data=d;render();renderSum();}).catch(()=>render());
+  data.schedules=loadSchedulesFromLocal();
+  render();
+  fetch(GAS).then(r=>r.json()).then(d=>{data.works=d.works||[];render();renderSum();}).catch(()=>render());
 }
 
 function render(){
@@ -311,12 +316,16 @@ function submit(){
   if(mode!=='schedule'&&!fhours){toast('時間を選択してください');return;}
   // 修正モードの場合は旧データを削除
   if(editingRow){
-    if(editingSheet==='schedule') data.schedules=data.schedules.filter(s=>s.row!==editingRow);
-    else data.works=data.works.filter(w=>w.row!==editingRow);
-    fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:editingSheet,row:editingRow}),headers:{'Content-Type':'text/plain'}});
+    if(editingSheet==='schedule'){
+      data.schedules=data.schedules.filter(s=>s.row!==editingRow);
+      saveSchedulesToLocal();
+    } else {
+      data.works=data.works.filter(w=>w.row!==editingRow);
+      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:editingSheet,row:editingRow}),headers:{'Content-Type':'text/plain'}});
+    }
     editingRow=null;editingSheet=null;
   }
-  // 繰り返し登録
+  // 繰り返しスケジュール登録（ローカルのみ）
   if(mode==='schedule' && document.getElementById('repeat-check').checked){
     const endDt=document.getElementById('fdate-end').value;
     if(!endDt||selectedDows.length===0){toast('曜日と終了日を選択してください');return;}
@@ -327,15 +336,23 @@ function submit(){
         dates.push(d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()));
       }
     }
-    let sent=0;
     dates.forEach(function(date){
-      fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'schedule',date:date,name:fname,task:ftask,product:fproduct,hours:0}),headers:{'Content-Type':'text/plain'}});
-      data.schedules.push({row:0,date:date,name:fname,task:ftask,product:fproduct,hours:0});
+      data.schedules.push({row:Date.now()+Math.random(),date:date,name:fname,task:ftask,product:fproduct,hours:0});
     });
+    saveSchedulesToLocal();
     closeModal();toast(dates.length+'件登録しました！');render();renderSum();
     return;
   }
 
+  // スケジュール登録（ローカルのみ）
+  if(mode==='schedule'){
+    data.schedules.push({row:Date.now(),date:dt,name:fname,task:ftask,product:fproduct,hours:0});
+    saveSchedulesToLocal();
+    closeModal();toast('登録しました！');render();selDay(dt);
+    return;
+  }
+
+  // 作業記録（GASに保存）
   var payload = JSON.stringify({type:mode,date:dt,name:fname,task:ftask,product:fproduct,hours:fhours});
   fetch(GAS,{method:'POST',mode:'no-cors',body:payload,headers:{'Content-Type':'text/plain'}})
     .then(()=>{closeModal();toast('登録しました！');setTimeout(()=>loadData(),2000);})
@@ -384,18 +401,15 @@ function toggleDow(dow, el){
 
 function deleteEntry(sheet, row, dt){
   if(!confirm('削除しますか？')) return;
-  // ローカルデータを即時更新
   if(sheet==='schedule'){
     data.schedules=data.schedules.filter(s=>s.row!==row);
+    saveSchedulesToLocal();
   } else {
     data.works=data.works.filter(w=>w.row!==row);
+    fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:sheet,row:row}),headers:{'Content-Type':'text/plain'}});
   }
-  render();
-  selDay(dt);
-  renderSum();
+  render();selDay(dt);renderSum();
   toast('削除しました');
-  // GASに削除を送信
-  fetch(GAS,{method:'POST',mode:'no-cors',body:JSON.stringify({type:'delete',sheet:sheet,row:row}),headers:{'Content-Type':'text/plain'}});
 }
 
 function toast(m){
